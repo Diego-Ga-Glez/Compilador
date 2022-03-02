@@ -1,0 +1,11 @@
+if(x == "hola"){
+  print("")
+}
+
+list a = [10, 9, "holi"]
+
+a.insert [-1] = "Hola"
+
+if (a[10] == b[xd]){
+
+}
