@@ -25,6 +25,17 @@ extern int yyparse();
 extern FILE* yyin;
 void yyerror(const char* s);
 
+void asm_suma(int, int);
+void asm_resta(int, int);
+void asm_mul(int, int);
+void asm_div(int, int);
+void asm_pow(int, int);
+void asm_sqrt(double);
+
+void asm_cos(double);
+void asm_sen(double);
+void asm_tan(double);
+
 void guardar(char*, void*, int);
 void actualizar(char*, void*, int);
 void inc_dec(char*, int);
@@ -70,13 +81,20 @@ void noUsadas();
 %type<vd> exp_bool_s
 
 
+%type<ival> asm_stmt
+
+
+//Esamblador
+%token REGISTROS ADD SUB MUL DIV
+%token POW ROT SIN COS TAN
+
 //Delimitadores
 %token LLAVE_A LLAVE_C PARENTESIS_A PARENTESIS_C
 %token CORCHETE_A CORCHETE_C
 
 //Palabras reservadas
 %token IF ELSE WHILE FOR INT FLOAT STRING CHAR PRINT
-%token INPUT AND OR BOOL STRCMP
+%token INPUT AND OR BOOL STRCMP ASM
 
 //Operadores aritmeticos
 %token OP_SUMA OP_RESTA OP_MULT OP_DIV OP_IGUAL
@@ -126,10 +144,23 @@ linea:    PRINT PARENTESIS_A cadena_io PARENTESIS_C              {printf("%s\n",
         | IF PARENTESIS_A exp_bool PARENTESIS_C LLAVE_A codigo LLAVE_C ELSE LLAVE_A codigo LLAVE_C
         | WHILE PARENTESIS_A exp_bool PARENTESIS_C LLAVE_A codigo LLAVE_C
         | op_inc_dec
-        | FOR PARENTESIS_A ID OP_IGUAL exp_ari PUNTOYCOMA exp_bool PUNTOYCOMA op_inc_dec PARENTESIS_C LLAVE_A codigo LLAVE_C
-				| exp_bool			{printf("Resultado: %i\n", $1);}
-				
+        | FOR PARENTESIS_A ID OP_IGUAL exp_ari PUNTOYCOMA exp_bool PUNTOYCOMA op_inc_dec PARENTESIS_C LLAVE_A codigo LLAVE_C	
+        | asm_stmt
 ;
+
+asm_stmt:   ASM ADD ENTERO ENTERO												{ asm_suma($3,$4);}
+					| ASM SUB ENTERO ENTERO												{ asm_resta($3,$4);}
+					| ASM MUL ENTERO ENTERO												{ asm_mul($3,$4);}
+					| ASM DIV ENTERO ENTERO												{ asm_div($3,$4);}
+          | ASM POW ENTERO ENTERO												{ asm_pow($3,$4);}
+					| ASM ROT	ENTERO															{ asm_sqrt($3);}
+          | ASM COS REAL													      { asm_cos($3);}
+          | ASM SIN REAL													      { asm_sen($3);}
+          | ASM TAN REAL													      { asm_tan($3);}
+
+;
+
+
 
 op_inc_dec:   ID OP_SUMA OP_SUMA                { inc_dec($1, 1); }
             | ID OP_RESTA OP_RESTA              { inc_dec($1, 0); }
@@ -185,11 +216,118 @@ exp_bool_b: TRUE                                 	 { $$ = $1; }
 %%
 
 int main(){
+  
   yyin = fopen("codigo.txt", "r");
+ 
   yyparse();
-  imprimir();
+  //imprimir();
   noUsadas();
   return 0;
+}
+
+void asm_suma(int num1, int num2){
+	int res;
+
+	__asm__ __volatile__ (
+			 "addl %%ebx, %%eax;"
+			 : "=a" (res) 
+			 : "a" (num1), "b" (num2));
+
+	printf("(%i) + (%i) = %i\n", num1, num2, res);
+	
+}
+
+void asm_resta(int num1, int num2){
+	int res;
+
+  __asm__ __volatile__ (
+			 "subl %%ebx, %%eax;"
+			 : "=a" (res) 
+			 : "a" (num1), "b" (num2));
+	
+	printf("(%i) - (%i) = %i\n", num1, num2, res);	
+}
+
+void asm_mul(int num1, int num2){
+	int res;
+
+	__asm__ __volatile__ (
+			 "imull %%ebx, %%eax;"
+			 : "=a" (res) 
+			 : "a" (num1), "b" (num2));
+
+	printf("(%i) * (%i) = %i\n", num1, num2, res);
+	
+}
+
+void asm_div(int num1, int num2){
+	int resultado;
+  int residuo;
+
+  __asm__ __volatile__ (
+        "cltd;"
+        "idivl %%ebx;"
+       : "=a"(resultado), "=d"(residuo)
+			 : "a" (num1), "b" (num2));
+
+	printf("(%i) / (%i) = %i\n", num1, num2, resultado);
+  printf("(%i) %% (%i) = %i\n", num1, num2, residuo);
+}
+
+void asm_pow(int $num1, int $num2){
+  printf("(%i) ^ (%i) = ", $num1, $num2);
+  int $res;
+
+	__asm__ __volatile__ (
+		"movl %1, %%eax;"
+	  "movl %2, %%ecx;"
+    "dec %%ecx;"
+    "siguiente:;"
+    "movl %1, %%edx;"
+	  "mul %%edx;"
+    "loop siguiente;"
+    "movl %%eax,%0;" : "=g" ( $res ) : "g" ( $num1 ), "g" ( $num2 )
+  );
+
+	 printf("%i\n", $res);
+}
+
+void asm_sqrt(double num){
+  
+  double or = num;
+  __asm__ __volatile__(
+    "fsqrt" : "+t" (num)
+  );
+
+  printf("Raiz de %.2lf = %.2lf\n", or, num);
+}
+
+void asm_cos(double num){
+  double or = num;
+
+  __asm__ __volatile__(
+  "fcos" : "+t" (num));
+
+  printf("COS %.2lf rad = %.4lf\n", or, num);
+}
+
+void asm_sen(double num){
+  double res = num;
+
+  __asm__ __volatile__(
+  "fsin" : "+t" (num));
+
+  printf("SEN %.2lf rad= %.4lf\n", res, num);
+}
+
+
+void asm_tan(double num){
+  double or = num;
+
+  __asm__ __volatile__(
+  "fptan" : "+t" (num));
+
+  printf("TAN %.2lf rad= %.4lf\n", or, num);
 }
 
 void guardar(char* clave, void* valor, int tipo) {
@@ -466,16 +604,17 @@ void noUsadas(){
   char w_noUsadas[100] = "Warning! variables no usadas: ";
   for (int i = 0; i != count; i++){
     if (dic[i].bandera == 0){
-      warning = 1;
-      strcat(w_noUsadas,dic[i].clave);
-      strcat(w_noUsadas,", ");
+      warning += 1;
+      if (warning > 4){
+          strcat(w_noUsadas,dic[i].clave);
+          strcat(w_noUsadas,", ");
+      }
     }
   }
-  if (warning == 1){
+  if (warning > 4){
     printf("%s \n",w_noUsadas);
   }
 }
-
 
 void yyerror(const char* s) {
     printf("Parse error: %s\n", s);

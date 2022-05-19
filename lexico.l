@@ -1,3 +1,4 @@
+
 %{
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,6 +48,17 @@ BOOL              "bool"
 TRUE              "true"
 FALSE             "false"
 STRCMP            "strcmp"
+ASM								"asm"
+REGISTROS					[abcd]x
+ADD								"add"
+SUB               "sub"
+MUL	              "mul"
+DIV               "div"
+POW               "pow"
+ROT               "rot"
+COS               "cos"
+SIN               "sin"
+TAN               "tan"
 
 /*DELIMITADORES*/
 LLAVE_A           "{"
@@ -119,6 +131,18 @@ OP_DISTINTO       "!="
 {FALSE}           {yylval.ival = 0; return FALSE;}
 {BOOL}            {return BOOL;}
 {STRCMP}          {return STRCMP;}
+
+{ASM}							{return ASM;}
+{REGISTROS}				{return REGISTROS;}
+{ADD}							{return ADD;}
+{SUB}							{return SUB;}
+{MUL}							{return MUL;}
+{DIV}							{return DIV;}
+{POW}             {return POW;}
+{ROT}             {return ROT;}
+{COS}             {return COS;}
+{SIN}             {return SIN;}
+{TAN}             {return TAN;}
 
 {ID}              {yylval.str = strdup(yytext); return ID;}
 
